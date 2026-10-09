@@ -57,16 +57,20 @@ jobs:
       - name: Validar token de producción
         env:
           PROD_TOKEN: ${{ secrets.PROD_TOKEN }}
-        shell: bash
+        shell: pwsh
         run: |
-          if [ -z "$PROD_TOKEN" ] || [ -z "$LOCAL_PROD_TOKEN" ]; then
-            echo "Error: falta PROD_TOKEN o LOCAL_PROD_TOKEN"
-            exit 1
-          fi
+          $LOCAL_PROD_TOKEN = $env:LOCAL_PROD_TOKEN
 
-          if [ "$PROD_TOKEN" = "$LOCAL_PROD_TOKEN" ]; then
-            echo "Token de producción validado correctamente"
-          else
-            echo "Error: los tokens de producción no coinciden"
+          if ([string]::IsNullOrEmpty($env:PROD_TOKEN) -or
+              [string]::IsNullOrEmpty($LOCAL_PROD_TOKEN)) {
+            Write-Error "Error: falta PROD_TOKEN o LOCAL_PROD_TOKEN"
             exit 1
-          fi
+          }
+
+          if ($env:PROD_TOKEN -ceq $LOCAL_PROD_TOKEN) {
+            Write-Host "Token de producción validado correctamente"
+          }
+          else {
+            Write-Error "Error: los tokens de producción no coinciden"
+            exit 1
+          }

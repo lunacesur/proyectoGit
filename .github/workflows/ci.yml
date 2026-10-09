@@ -60,11 +60,20 @@ jobs:
       - name: Validar token de desarrollo
         env:
           DEV_TOKEN: ${{ secrets.DEV_TOKEN }}
-          LOCAL_DEV_TOKEN: ${{ vars.LOCAL_DEV_TOKEN }}
+        shell: pwsh
         run: |
-          if [ "$DEV_TOKEN" = "$LOCAL_DEV_TOKEN" ] && [ -n "$DEV_TOKEN" ]; then
-            echo "Token de desarrollo válido"
-          else
-            echo "Error: el token de desarrollo no coincide"
+          $LOCAL_DEV_TOKEN = $env:LOCAL_DEV_TOKEN
+
+          if ([string]::IsNullOrEmpty($env:DEV_TOKEN) -or
+              [string]::IsNullOrEmpty($LOCAL_DEV_TOKEN)) {
+            Write-Error "Error: falta DEV_TOKEN o LOCAL_DEV_TOKEN"
             exit 1
-          fi
+          }
+
+          if ($env:DEV_TOKEN -ceq $LOCAL_DEV_TOKEN) {
+            Write-Host "Token de desarrollo validado correctamente"
+          }
+          else {
+            Write-Error "Error: los tokens de desarrollo no coinciden"
+            exit 1
+          }
