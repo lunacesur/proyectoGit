@@ -21,17 +21,27 @@ jobs:
 
       - name: Actualizar README.md
         run: |
-          # 1. Determinar el nombre de la feature correctamente
+          # Limpiar cualquier cambio residual en el runner
+          git checkout -- . || true
+          git clean -fd || true
+
+          # Obtener nombre de la rama
           if [ -n "$GITHUB_HEAD_REF" ]; then
             BRANCH_NAME="$GITHUB_HEAD_REF"
           else
-            # Extrae el nombre de la rama feature si viene de un PR o commit
             BRANCH_NAME=$(git log -1 --pretty=%B | grep -oE 'feature/[a-zA-Z0-9_-]+' || echo "mi-feature")
           fi
 
-          # 2. Asegurar que haya un salto de línea antes de escribir
+          # Añadir línea al README
           echo "" >> README.md
           echo "Añadida feature: $BRANCH_NAME" >> README.md
+
+          # Guardar y subir directamente sin rebase
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add README.md
+          git commit -m "docs: actualizar README con feature [$BRANCH_NAME]"
+          git push origin develop
 
       - name: Commit y push del README
         env:
