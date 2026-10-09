@@ -53,7 +53,6 @@ jobs:
   validate-dev:
     runs-on: self-hosted
     needs: update-readme
-
     steps:
       - name: Validar token de desarrollo
         env:
