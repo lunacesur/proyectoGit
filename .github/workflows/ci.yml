@@ -25,22 +25,26 @@ jobs:
           if [ -n "$GITHUB_HEAD_REF" ]; then
             BRANCH_NAME="$GITHUB_HEAD_REF"
           else
-            BRANCH_NAME=$(git log -1 --pretty=%B | grep -oE 'feature/[a-zA-Z0-9_-]+' || echo "${GITHUB_REF_NAME}")
+            BRANCH_NAME=$(git log -1 --pretty=%B | grep -oE 'feature/[a-zA-Z0-9_-]+' || echo "mi-feature")
           fi
 
-          # 2. Escribir en README.md
+          # 2. Descartar cualquier cambio local pendiente que haya dejado checkout
+          git checkout -- README.md || true
+
+          # 3. Sincronizar con el estado actual del repositorio remoto
+          git pull origin develop
+
+          # 4. Escribir el nuevo cambio al final del README.md
           echo "" >> README.md
           echo "Añadida feature: $BRANCH_NAME" >> README.md
 
-          # 3. Configurar e incluir cambios en Git
+          # 5. Configurar Git y guardar el commit
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add README.md
           git commit -m "docs: actualizar README con feature [$BRANCH_NAME]"
 
-          # 4. Sincronizar justo antes de hacer push (resuelve el desfasaje de refs)
-          git fetch origin develop
-          git rebase origin/develop
+          # 6. Subir directamente
           git push origin develop
 
       - name: Commit y push del README
