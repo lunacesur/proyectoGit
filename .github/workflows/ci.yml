@@ -20,7 +20,9 @@ jobs:
     steps:
       - name: Descargar repositorio
         uses: actions/checkout@v4
-
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
+          token: ${{ secrets.GITHUB_TOKEN }}
       - name: Añadir feature al README
         if: github.event_name == 'pull_request'
         env:
@@ -30,27 +32,25 @@ jobs:
           if ! grep -Fxq "$LINE" README.md; then
             echo "$LINE" >> README.md
           fi
-
+          
       - name: Guardar cambios
         if: github.event_name == 'pull_request'
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           FEATURE_BRANCH: ${{ github.head_ref }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
+          git fetch origin "$FEATURE_BRANCH"
+
           git add README.md
 
           if ! git diff --cached --quiet; then
-            gh api \
-              --method PUT \
-              "repos/${GITHUB_REPOSITORY}/contents/README.md" \
-              -f message="ci: actualizar README con feature" \
-              -f content="$(base64 -w 0 README.md)" \
-              -f branch="$FEATURE_BRANCH" \
-              -f sha="$(gh api "repos/${GITHUB_REPOSITORY}/contents/README.md?ref=${FEATURE_BRANCH}" --jq .sha)"
+            git commit -m "ci: actualizar README con la feature"
           fi
+
+          git pull --rebase origin "$FEATURE_BRANCH"
+          git push origin HEAD:"$FEATURE_BRANCH"
 
   validate-dev:
     runs-on: self-hosted

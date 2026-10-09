@@ -24,53 +24,34 @@ jobs:
           ref: main
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Incrementar versión del README
-        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
-        run: |
-          if ! grep -q '^AppVersion-[0-9]\+$' README.md; then
-            echo "Error: no se encuentra AppVersion-N en README.md"
-            exit 1
-          fi
-
-          VERSION=$(grep '^AppVersion-[0-9]\+$' README.md | head -n 1 | sed 's/AppVersion-//')
-          NEXT_VERSION=$((VERSION + 1))
-          sed -i "s/^AppVersion-$VERSION$/AppVersion-$NEXT_VERSION/" README.md
-
-          echo "Fecha y hora de actualización: $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> README.md
-
       - name: Guardar nueva versión
         if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git fetch origin main
+          git pull --rebase origin main
+
           git add README.md
+
           if ! git diff --cached --quiet; then
             git commit -m "cd: incrementar versión"
-            git push origin HEAD:main
           fi
+
+          git push origin HEAD:main
 
   validate-prod:
     runs-on: self-hosted
     needs: update-version
 
     steps:
-      - name: Validar token de producción
-        env:
-          PROD_TOKEN: ${{ secrets.PROD_TOKEN }}
-        shell: pwsh
+      - name: Validar PROD_TOKEN en Runner Self-Hosted
         run: |
-          $LOCAL_PROD_TOKEN = $env:LOCAL_PROD_TOKEN
-
-          if ([string]::IsNullOrEmpty($env:PROD_TOKEN) -or
-              [string]::IsNullOrEmpty($LOCAL_PROD_TOKEN)) {
-            Write-Error "Error: falta PROD_TOKEN o LOCAL_PROD_TOKEN"
-            exit 1
-          }
-
-          if ($env:PROD_TOKEN -ceq $LOCAL_PROD_TOKEN) {
-            Write-Host "Token de producción validado correctamente"
-          }
-          else {
-            Write-Error "Error: los tokens de producción no coinciden"
+          if ($env:LOCAL_PROD_TOKEN -eq "${{ secrets.PROD_TOKEN }}") {
+            echo "Token PROD verificado correctamente."
+            exit 0
+          } else {
+            echo "Error: El token PROD local no coincide con el secret."
             exit 1
           }
