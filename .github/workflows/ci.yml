@@ -58,7 +58,7 @@ jobs:
       - name: Validar token de desarrollo
         env:
           DEV_TOKEN: ${{ secrets.DEV_TOKEN }}
-        shell: pwsh
+        shell: powershell
         run: |
           $LOCAL_DEV_TOKEN = $env:LOCAL_DEV_TOKEN
 
