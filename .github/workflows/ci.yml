@@ -58,16 +58,17 @@ jobs:
       - name: Validar token de desarrollo
         env:
           DEV_TOKEN: ${{ secrets.DEV_TOKEN }}
-          LOCAL_DEV_TOKEN: ${{ vars.LOCAL_DEV_TOKEN }}
         shell: pwsh
         run: |
+          $LOCAL_DEV_TOKEN = $env:LOCAL_DEV_TOKEN
+
           if ([string]::IsNullOrEmpty($env:DEV_TOKEN) -or
-              [string]::IsNullOrEmpty($env:LOCAL_DEV_TOKEN)) {
+              [string]::IsNullOrEmpty($LOCAL_DEV_TOKEN)) {
             Write-Error "Error: falta DEV_TOKEN o LOCAL_DEV_TOKEN"
             exit 1
           }
 
-          if ($env:DEV_TOKEN -ceq $env:LOCAL_DEV_TOKEN) {
+          if ($env:DEV_TOKEN -ceq $LOCAL_DEV_TOKEN) {
             Write-Host "Token de desarrollo validado correctamente"
           }
           else {
