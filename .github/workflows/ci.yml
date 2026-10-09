@@ -1,15 +1,17 @@
-name: CI Workflow
+name: CI
 
 on:
-  push:
-    branches: [ "develop" ]
   pull_request:
-    branches: [ "develop" ]
-  workflow_dispatch:
-
-permissions:
-  contents: write
-  pull-requests: read
+    branches:
+      - develop
+    types:
+      - opened
+      - synchronize
+      - reopened
+  push:
+    branches:
+      - develop
+  workflow_dispatch: {}
 
 jobs:
   update-readme:
