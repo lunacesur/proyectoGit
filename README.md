@@ -1,4 +1,1 @@
-AppVersion-0Añadida feature: develop
-Añadida feature: develop
-Añadida feature: develop
-Añadida feature: feature/mi-feature
+AppVersion-0
