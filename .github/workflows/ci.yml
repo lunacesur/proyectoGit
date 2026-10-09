@@ -1,51 +1,56 @@
-name: CI
+name: CI Workflow
 
 on:
-  pull_request:
-    branches:
-      - develop
-    types:
-      - opened
-      - synchronize
-      - reopened
   push:
-    branches:
-      - develop
+    branches: [ develop ]
+  pull_request:
+    types: [ opened, synchronize, reopened ]
+    branches: [ develop ]
   workflow_dispatch:
 
 jobs:
   update-readme:
     runs-on: ubuntu-latest
-
+    permissions:
+      contents: write
     steps:
-      - name: Descargar repositorio
+      - name: Checkout del código
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - name: Añadir feature al README
+      - name: Actualizar README.md
         run: |
-          echo "Añadida feature: ${{ github.head_ref || github.ref_name }}" >> README.md
+          BRANCH_NAME="${GITHUB_HEAD_REF:-${GITHUB_REF_NAME}}"
+          echo "Añadida feature: $BRANCH_NAME" >> README.md
 
-      - name: Guardar cambios del README
+      - name: Commit y push del README
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          TARGET_BRANCH="${GITHUB_HEAD_REF:-${GITHUB_REF_NAME}}"
+          git checkout $TARGET_BRANCH || git checkout -b $TARGET_BRANCH
+          
           git add README.md
-          git diff --cached --quiet || git commit -m "Actualizar README con la feature"
-          git push origin HEAD:${{ github.event.pull_request.base.ref || github.ref_name }}
+          if ! git diff --quiet --staged; then
+            git commit -m "docs: actualizar README con feature [$TARGET_BRANCH]"
+            git pull origin $TARGET_BRANCH --rebase
+            git push origin $TARGET_BRANCH
+          fi
 
   validate-dev:
-    runs-on: self-hosted
     needs: update-readme
-
+    runs-on: self-hosted
     steps:
-      - name: Validar token de desarrollo
-        env:
-          DEV_TOKEN: ${{ secrets.DEV_TOKEN }}
-          LOCAL_DEV_TOKEN: ${{ vars.LOCAL_DEV_TOKEN }}
+      - name: Validar DEV_TOKEN
         run: |
-          if [ "$DEV_TOKEN" = "$LOCAL_DEV_TOKEN" ] && [ -n "$DEV_TOKEN" ]; then
-            echo "Token de desarrollo válido"
+          echo "Validando DEV_TOKEN..."
+          if [ "$LOCAL_DEV_TOKEN" = "${{ secrets.DEV_TOKEN }}" ]; then
+            echo "DEV_TOKEN válido"
           else
-            echo "Error: el token de desarrollo no coincide"
+            echo "Error: LOCAL_DEV_TOKEN no coincide con DEV_TOKEN"
             exit 1
           fi
