@@ -28,23 +28,26 @@ jobs:
             BRANCH_NAME=$(git log -1 --pretty=%B | grep -oE 'feature/[a-zA-Z0-9_-]+' || echo "mi-feature")
           fi
 
-          # 2. Descartar cualquier cambio local pendiente que haya dejado checkout
-          git checkout -- README.md || true
+          # 2. Descartar cualquier cambio local previo para evitar bloqueos
+          git checkout -- .
+          git clean -fd
 
-          # 3. Sincronizar con el estado actual del repositorio remoto
-          git pull origin develop
+          # 3. Traer la versión más reciente de develop
+          git fetch origin develop
+          git checkout develop
+          git reset --hard origin/develop
 
-          # 4. Escribir el nuevo cambio al final del README.md
+          # 4. Escribir la nueva línea al final del README.md
           echo "" >> README.md
           echo "Añadida feature: $BRANCH_NAME" >> README.md
 
-          # 5. Configurar Git y guardar el commit
+          # 5. Configurar usuario y hacer commit
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add README.md
           git commit -m "docs: actualizar README con feature [$BRANCH_NAME]"
 
-          # 6. Subir directamente
+          # 6. Hacer push directo a develop
           git push origin develop
 
       - name: Commit y push del README
