@@ -57,7 +57,3 @@ jobs:
             echo "Error: El token PROD local no coincide con el secret."
             exit 1
           fi
-          else
-            echo "Error: El token PROD local no coincide con el secret."
-            exit 1
-          fi
