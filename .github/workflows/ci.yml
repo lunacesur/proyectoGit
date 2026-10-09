@@ -51,15 +51,26 @@ jobs:
           fi
 
   validate-dev:
-    needs: update-readme
     runs-on: self-hosted
+    needs: update-readme
+
     steps:
-      - name: Validar DEV_TOKEN en Runner Self-Hosted
+      - name: Validar token de desarrollo
+        env:
+          DEV_TOKEN: ${{ secrets.DEV_TOKEN }}
+          LOCAL_DEV_TOKEN: ${{ vars.LOCAL_DEV_TOKEN }}
+        shell: pwsh
         run: |
-          if [ "$LOCAL_DEV_TOKEN" = "${{ secrets.DEV_TOKEN }}" ]; then
-            echo "Token DEV verificado correctamente."
-            exit 0
-          else
-            echo "Error: El token DEV local no coincide con el secret."
+          if ([string]::IsNullOrEmpty($env:DEV_TOKEN) -or
+              [string]::IsNullOrEmpty($env:LOCAL_DEV_TOKEN)) {
+            Write-Error "Error: falta DEV_TOKEN o LOCAL_DEV_TOKEN"
             exit 1
-          fi
+          }
+
+          if ($env:DEV_TOKEN -ceq $env:LOCAL_DEV_TOKEN) {
+            Write-Host "Token de desarrollo validado correctamente"
+          }
+          else {
+            Write-Error "Error: los tokens de desarrollo no coinciden"
+            exit 1
+          }
