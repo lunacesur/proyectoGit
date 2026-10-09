@@ -1,18 +1,22 @@
-name: CI Workflow
+name: CI
 
 on:
-  push:
-    branches: [ "develop" ]
   pull_request:
-    branches: [ "develop" ]
-  workflow_dispatch:
-
-permissions:
-  contents: write
+    branches:
+      - develop
+    types:
+      - opened
+      - synchronize
+      - reopened
+  push:
+    branches:
+      - develop
+  workflow_dispatch: {}
 
 jobs:
   update-readme:
     runs-on: ubuntu-latest
+
     steps:
       - name: Descargar repositorio
         uses: actions/checkout@v4
@@ -49,16 +53,26 @@ jobs:
           git push origin HEAD:"$FEATURE_BRANCH"
 
   validate-dev:
-    needs: update-readme
     runs-on: self-hosted
+    needs: update-readme
     steps:
-      - name: Validar DEV_TOKEN en Runner Self-Hosted
-        shell: bash
+      - name: Validar token de desarrollo
+        env:
+          DEV_TOKEN: ${{ secrets.DEV_TOKEN }}
+        shell: powershell
         run: |
-          if [ "$LOCAL_DEV_TOKEN" = "${{ secrets.DEV_TOKEN }}" ]; then
-            echo "Token DEV verificado correctamente."
-            exit 0
-          else
-            echo "Error: El token DEV local no coincide con el secret."
+          $LOCAL_DEV_TOKEN = $env:LOCAL_DEV_TOKEN
+
+          if ([string]::IsNullOrEmpty($env:DEV_TOKEN) -or
+              [string]::IsNullOrEmpty($LOCAL_DEV_TOKEN)) {
+            Write-Error "Error: falta DEV_TOKEN o LOCAL_DEV_TOKEN"
             exit 1
-          fi
+          }
+
+          if ($env:DEV_TOKEN -ceq $LOCAL_DEV_TOKEN) {
+            Write-Host "Token de desarrollo validado correctamente"
+          }
+          else {
+            Write-Error "Error: los tokens de desarrollo no coinciden"
+            exit 1
+          }

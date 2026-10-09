@@ -1,23 +1,28 @@
-name: CD Workflow
+name: CD
 
 on:
-  push:
-    branches: [ "main" ]
   pull_request:
-    branches: [ "main" ]
+    branches:
+      - main
+    types: [opened, synchronize, reopened]
+  push:
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
-  bump-version:
+  update-version:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout del código
+      - name: Descargar repositorio
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          ref: main
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Guardar nueva versión
         if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
@@ -37,8 +42,9 @@ jobs:
           git push origin HEAD:main
 
   validate-prod:
-    needs: bump-version
     runs-on: self-hosted
+    needs: update-version
+
     steps:
       - name: Validar PROD_TOKEN en Runner Self-Hosted
         run: |
