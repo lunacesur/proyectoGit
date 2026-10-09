@@ -49,6 +49,7 @@ jobs:
     runs-on: self-hosted
     steps:
       - name: Validar DEV_TOKEN en Runner Self-Hosted
+        shell: bash
         run: |
           if [ "$LOCAL_DEV_TOKEN" = "${{ secrets.DEV_TOKEN }}" ]; then
             echo "Token DEV verificado correctamente."
