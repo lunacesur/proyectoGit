@@ -19,30 +19,24 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Actualizar README.md
+      - name: Guardar cambios
+        if: github.event_name == 'pull_request'
+        env:
+          FEATURE_BRANCH: ${{ github.head_ref }}
         run: |
-          # Posicionarse explícitamente en la rama develop local
-          git checkout -B develop origin/develop
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          # Determinar el nombre de la feature
-          if [ -n "$GITHUB_HEAD_REF" ]; then
-            BRANCH_NAME="$GITHUB_HEAD_REF"
-          else
-            BRANCH_NAME=$(git log -1 --pretty=%B | grep -oE 'feature/[a-zA-Z0-9_-]+' || echo "${GITHUB_REF_NAME}")
+          git fetch origin "$FEATURE_BRANCH"
+
+          git add README.md
+
+          if ! git diff --cached --quiet; then
+            git commit -m "ci: actualizar README con la feature"
           fi
 
-          # Añadir salto de línea y la nueva feature al README
-          echo "" >> README.md
-          echo "Añadida feature: $BRANCH_NAME" >> README.md
-
-          # Configurar usuario de bot y realizar commit
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add README.md
-          git commit -m "docs: actualizar README con feature [$BRANCH_NAME]"
-
-          # Hacer push a la rama develop remota
-          git push origin develop
+          git pull --rebase origin "$FEATURE_BRANCH"
+          git push origin HEAD:"$FEATURE_BRANCH"
 
   validate-dev:
     needs: update-readme
