@@ -1,4 +1,3 @@
-```yaml
 name: CD
 
 on:
@@ -61,4 +60,3 @@ jobs:
             echo "Error: el token de producción no coincide"
             exit 1
           fi
-```
