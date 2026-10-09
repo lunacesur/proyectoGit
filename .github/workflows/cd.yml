@@ -1,62 +1,62 @@
-name: CD
+name: CD Workflow
 
 on:
-  pull_request:
-    branches:
-      - main
-    types:
-      - opened
-      - synchronize
-      - reopened
   push:
-    branches:
-      - main
+    branches: [ main ]
+  pull_request:
+    types: [ opened, synchronize, reopened ]
+    branches: [ main ]
   workflow_dispatch:
 
 jobs:
-  update-version:
+  bump-version:
     runs-on: ubuntu-latest
-
+    permissions:
+      contents: write
     steps:
-      - name: Descargar repositorio
+      - name: Checkout del código
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - name: Actualizar versión
+      - name: Incrementar versión en README.md
         run: |
-          FECHA=$(date '+%Y-%m-%d %H:%M:%S')
-
-          if grep -q '^AppVersion-[0-9]\+$' README.md; then
-            VERSION=$(grep -o '^AppVersion-[0-9]\+$' README.md | head -n 1 | cut -d '-' -f 2)
-            NUEVA_VERSION=$((VERSION + 1))
-            sed -i "s/^AppVersion-$VERSION$/AppVersion-$NUEVA_VERSION/" README.md
+          CURRENT_DATE=$(date +'%Y-%m-%d %H:%M:%S')
+          if grep -q "AppVersion-" README.md; then
+            LAST_VER=$(grep -o 'AppVersion-[0-9]*' README.md | tail -n 1 | cut -d'-' -f2)
+            NEW_VER=$((LAST_VER + 1))
+            echo "AppVersion-$NEW_VER ($CURRENT_DATE)" >> README.md
           else
-            echo "Error: no se encuentra AppVersion en README.md"
-            exit 1
+            echo "AppVersion-1 ($CURRENT_DATE)" >> README.md
           fi
 
-          echo "Última actualización: $FECHA" >> README.md
-
-      - name: Guardar cambios de versión
+      - name: Commit y push de la versión
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          TARGET_BRANCH="${GITHUB_HEAD_REF:-${GITHUB_REF_NAME}}"
+          git checkout $TARGET_BRANCH || git checkout -b $TARGET_BRANCH
+          
           git add README.md
-          git diff --cached --quiet || git commit -m "Actualizar versión de la aplicación"
-          git push origin HEAD:${{ github.event.pull_request.base.ref || github.ref_name }}
+          if ! git diff --quiet --staged; then
+            git commit -m "chore: incremento de versión en README [$TARGET_BRANCH]"
+            git pull origin $TARGET_BRANCH --rebase
+            git push origin $TARGET_BRANCH
+          fi
 
   validate-prod:
+    needs: bump-version
     runs-on: self-hosted
-    needs: update-version
-
     steps:
-      - name: Validar token de producción
-        env:
-          PROD_TOKEN: ${{ secrets.PROD_TOKEN }}
-          LOCAL_PROD_TOKEN: ${{ vars.LOCAL_PROD_TOKEN }}
+      - name: Validar PROD_TOKEN
         run: |
-          if [ "$PROD_TOKEN" = "$LOCAL_PROD_TOKEN" ] && [ -n "$PROD_TOKEN" ]; then
-            echo "Token de producción válido"
+          echo "Validando PROD_TOKEN..."
+          if [ "$LOCAL_PROD_TOKEN" = "${{ secrets.PROD_TOKEN }}" ]; then
+            echo "PROD_TOKEN válido"
           else
-            echo "Error: el token de producción no coincide"
+            echo "Error: LOCAL_PROD_TOKEN no coincide con PROD_TOKEN"
             exit 1
           fi
