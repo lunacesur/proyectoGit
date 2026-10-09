@@ -9,3 +9,5 @@ AppVersion-5 (2026-10-09 12:02:47)
 
 Añadida feature: develop
 AppVersion-6 (2026-10-09 12:03:52)
+
+Añadida feature: develop
