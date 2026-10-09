@@ -13,30 +13,41 @@ permissions:
 jobs:
   update-readme:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout del código
+      - name: Descargar repositorio
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
-      - name: Actualizar README.md
+      - name: Añadir feature al README
+        if: github.event_name == 'pull_request'
+        env:
+          FEATURE_BRANCH: ${{ github.head_ref }}
         run: |
-          git checkout -B develop origin/develop
-
-          if [ -n "$GITHUB_HEAD_REF" ]; then
-            BRANCH_NAME="$GITHUB_HEAD_REF"
-          else
-            BRANCH_NAME=$(git log -1 --pretty=%B | grep -oE 'feature/[a-zA-Z0-9_-]+' || echo "${GITHUB_REF_NAME}")
+          LINE="Añadida feature: $FEATURE_BRANCH"
+          if ! grep -Fxq "$LINE" README.md; then
+            echo "$LINE" >> README.md
           fi
 
-          echo "" >> README.md
-          echo "Añadida feature: $BRANCH_NAME" >> README.md
-
+      - name: Guardar cambios
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          FEATURE_BRANCH: ${{ github.head_ref }}
+        run: |
           git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
           git add README.md
-          git commit -m "docs: actualizar README con feature [$BRANCH_NAME]"
-          git push origin develop
+
+          if ! git diff --cached --quiet; then
+            gh api \
+              --method PUT \
+              "repos/${GITHUB_REPOSITORY}/contents/README.md" \
+              -f message="ci: actualizar README con feature" \
+              -f content="$(base64 -w 0 README.md)" \
+              -f branch="$FEATURE_BRANCH" \
+              -f sha="$(gh api "repos/${GITHUB_REPOSITORY}/contents/README.md?ref=${FEATURE_BRANCH}" --jq .sha)"
+          fi
 
   validate-dev:
     needs: update-readme
