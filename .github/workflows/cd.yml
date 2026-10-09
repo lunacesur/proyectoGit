@@ -19,29 +19,22 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Incrementar versión en README.md
+      - name: Guardar nueva versión
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
         run: |
-          # Posicionarse explícitamente en la rama main local
-          git checkout -B main origin/main
-          CURRENT_DATE=$(date +'%Y-%m-%d %H:%M:%S')
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          # Extraer e incrementar número de versión
-          if grep -q "AppVersion-" README.md; then
-            LAST_VER=$(grep -o 'AppVersion-[0-9]*' README.md | tail -n 1 | cut -d'-' -f2)
-            NEW_VER=$((LAST_VER + 1))
-            echo "AppVersion-$NEW_VER ($CURRENT_DATE)" >> README.md
-          else
-            echo "AppVersion-1 ($CURRENT_DATE)" >> README.md
+          git fetch origin main
+          git pull --rebase origin main
+
+          git add README.md
+
+          if ! git diff --cached --quiet; then
+            git commit -m "cd: incrementar versión"
           fi
 
-          # Configurar usuario de bot y realizar commit
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add README.md
-          git commit -m "chore: incrementar version en README.md"
-
-          # Hacer push a la rama main remota
-          git push origin main
+          git push origin HEAD:main
 
   validate-prod:
     needs: bump-version
