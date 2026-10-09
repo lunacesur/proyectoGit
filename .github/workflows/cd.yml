@@ -48,10 +48,15 @@ jobs:
     runs-on: self-hosted
     steps:
       - name: Validar PROD_TOKEN en Runner Self-Hosted
+        shell: bash
         run: |
           if [ "$LOCAL_PROD_TOKEN" = "${{ secrets.PROD_TOKEN }}" ]; then
             echo "Token PROD verificado correctamente."
             exit 0
+          else
+            echo "Error: El token PROD local no coincide con el secret."
+            exit 1
+          fi
           else
             echo "Error: El token PROD local no coincide con el secret."
             exit 1
